@@ -1,7 +1,5 @@
-pub mod sha_256;
-use sha_256::*;
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("My SHA-256")

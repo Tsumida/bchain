@@ -2,7 +2,7 @@
 //! This is an impl for crypography algorithm SHA2-256.
 
 
-use byteorder::{LittleEndian, BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{BigEndian, WriteBytesExt};
 
 /// 参考: https://zhuanlan.zhihu.com/p/94619052
 static init_hash: [u32; 64] = [
@@ -15,6 +15,7 @@ static init_hash: [u32; 64] = [
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 ];
+
 pub struct SHA256{
     msg: Vec<u8>,
 }
@@ -184,10 +185,8 @@ impl SHA256{
 
 }
 
-
-
 #[cfg(test)]
-mod sha_256_test{
+mod test_mysha_256{
     use super::*;
     use byteorder::{LittleEndian, BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
 
@@ -299,4 +298,3 @@ mod sha_256_test{
     }
 
 }
-
