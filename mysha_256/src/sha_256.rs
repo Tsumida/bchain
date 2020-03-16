@@ -1,7 +1,6 @@
 
 //! This is an impl for crypography algorithm SHA2-256.
-//! SHA256 works correctly when the content contains only numbers or latters.
-//! 
+
 
 use byteorder::{LittleEndian, BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
 
@@ -101,7 +100,6 @@ impl SHA256{
         let mut res = Vec::with_capacity(l);
 
         for i in 0..l{
-            // 自然方式读取
             let st = 64*i;
             res.push(
                 (0..16).map(|i| 
@@ -213,34 +211,30 @@ mod sha_256_test{
 
     #[test]
     fn test_correctness() {
+        // 对照: http://tools.jb51.net/password/hash_md5_sha
         assert_eq!(
-            SHA256::new("abc".to_ascii_lowercase().as_bytes()).cal_sha_256(),
+            SHA256::new("abc".as_bytes()).cal_sha_256(),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
         );
         assert_eq!(
-            SHA256::new("abcdef".to_ascii_lowercase().as_bytes()).cal_sha_256(),
+            SHA256::new("abcdef".as_bytes()).cal_sha_256(),
             "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721"
         );
 
         assert_eq!(
-            SHA256::new("dddddddddddddddddddddddddddddd".to_ascii_lowercase().as_bytes()).cal_sha_256(),
+            SHA256::new("dddddddddddddddddddddddddddddd".as_bytes()).cal_sha_256(),
             "31273282b1095ad8c0032d2c8dbe2e32b635f41411c67ac31f3d029cde22ade1",
         );
 
         assert_eq!(
-            SHA256::new("1234567890abcedf".to_ascii_lowercase().as_bytes()).cal_sha_256(),
+            SHA256::new("1234567890abcedf".as_bytes()).cal_sha_256(),
             "907e464a92ac7fa21c919ab718a37f494a2c560006f13147a25bf5056e7aeafd",
         );
-    }
 
-    #[test]
-    #[should_panic]
-    fn test_incorrect() {
         assert_eq!(
-            SHA256::new("Hello, world!".to_ascii_lowercase().as_bytes()).cal_sha_256(),
+            SHA256::new("Hello, world!".as_bytes()).cal_sha_256(),
             "315f5bdb76d078c43b8ac0064e4a0164612b1fce77c869345bfc94c75894edd3",
         );
-        // got 68e656b251e67e8358bef8483ab0d51c6619f3e7a1a9f0e75838d41ff368f728
     }
 
     #[test]
@@ -285,8 +279,6 @@ mod sha_256_test{
             s2.get_be_u32_chunks()[0].to_owned(),
             pad2
         );
-
-
     }
 
     #[test]
