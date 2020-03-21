@@ -1,11 +1,11 @@
 
-//! This is an impl for crypography algorithm SHA2-256.
+//! This is an impl for crypography algorithm SdigeA2-256.
 
 
 use byteorder::{BigEndian, WriteBytesExt};
 
 /// 参考: https://zhuanlan.zhihu.com/p/94619052
-static init_hash: [u32; 64] = [
+static INIT_HASH: [u32; 64] = [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
     0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
@@ -75,13 +75,13 @@ impl SHA256{
     }
 
     pub fn cal_sha_256(&mut self) -> String{
-        let mut H: [u32; 8] = [
+        let mut dige: [u32; 8] = [
             0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 
             0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
         ];
-        self.compact_iteration(&mut H);
-        // digital signature = H[0] append H[1] ...
-        H.iter()
+        self.compact_iteration(&mut dige);
+        // digital signature = dige[0] append dige[1] ...
+        dige.iter()
             .map(|e| format!("{:08x}", e))
             .collect::<String>()
     }
@@ -114,10 +114,10 @@ impl SHA256{
         res
     }
 
-    fn compact(&mut self, chunk: &Vec<u32>, H:&mut [u32; 8], w: &mut [u32; 64]){
+    fn compact(&mut self, chunk: &Vec<u32>, dige:&mut [u32; 8], w: &mut [u32; 64]){
         assert_eq!(0, chunk.len() % 16);
         let (mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h) = (
-            H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]
+            dige[0], dige[1], dige[2], dige[3], dige[4], dige[5], dige[6], dige[7]
         );
        
         // copy chunk to w[0..16]
@@ -134,7 +134,7 @@ impl SHA256{
         // compression loop.
         for i in 0..64{
             let temp1   = modular_32_add!(
-                h, cigma_1(e), ch(e, f, g), init_hash[i], w[i]
+                h, cigma_1(e), ch(e, f, g), INIT_HASH[i], w[i]
             );
             let temp2   = modular_32_add!(
                 cigma_0(a), maj(a, b, c)
@@ -150,23 +150,23 @@ impl SHA256{
             a = modular_32_add!(temp1, temp2);
         }
 
-        H[0] = modular_32_add!(H[0], a);
-        H[1] = modular_32_add!(H[1], b);
-        H[2] = modular_32_add!(H[2], c);
-        H[3] = modular_32_add!(H[3], d);
-        H[4] = modular_32_add!(H[4], e);
-        H[5] = modular_32_add!(H[5], f);
-        H[6] = modular_32_add!(H[6], g);
-        H[7] = modular_32_add!(H[7], h);
+        dige[0] = modular_32_add!(dige[0], a);
+        dige[1] = modular_32_add!(dige[1], b);
+        dige[2] = modular_32_add!(dige[2], c);
+        dige[3] = modular_32_add!(dige[3], d);
+        dige[4] = modular_32_add!(dige[4], e);
+        dige[5] = modular_32_add!(dige[5], f);
+        dige[6] = modular_32_add!(dige[6], g);
+        dige[7] = modular_32_add!(dige[7], h);
     }
 
-    fn compact_iteration(&mut self, H: &mut [u32; 8]){
+    fn compact_iteration(&mut self, dige: &mut [u32; 8]){
         let chunks = self.get_be_u32_chunks();
         // main loop
         // produce a 256bit digital signature for each chunk.
         let mut w: [u32; 64] = [0; 64];
         for chunk in chunks{
-            self.compact(&chunk, H, &mut w);
+            self.compact(&chunk, dige, &mut w);
         }
     }
 
@@ -188,12 +188,12 @@ impl SHA256{
 #[cfg(test)]
 mod test_mysha_256{
     use super::*;
-    use byteorder::{LittleEndian, BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
+    use byteorder::{BigEndian, WriteBytesExt};
 
     #[test]
     fn test_proc() {
         let s = "abc";
-        let mut sha = SHA256::new(s.to_ascii_lowercase().as_bytes());
+        let sha = SHA256::new(s.to_ascii_lowercase().as_bytes());
         
         assert_eq!(0, sha.msg.len()%64);
         let cks = sha.get_be_u32_chunks()[0].to_owned();
@@ -231,7 +231,7 @@ mod test_mysha_256{
         );
 
         assert_eq!(
-            SHA256::new("Hello, world!".as_bytes()).cal_sha_256(),
+            SHA256::new("digeello, world!".as_bytes()).cal_sha_256(),
             "315f5bdb76d078c43b8ac0064e4a0164612b1fce77c869345bfc94c75894edd3",
         );
     }
@@ -256,7 +256,7 @@ mod test_mysha_256{
 
     #[test]
     fn test_padding() {
-        let mut s1 = SHA256::new("abc".to_ascii_lowercase().as_bytes());
+        let s1 = SHA256::new("abc".to_ascii_lowercase().as_bytes());
         let mut pad1 = vec![0x61626380u32];
         pad1.append(
             &mut vec![0; 14]
@@ -268,7 +268,7 @@ mod test_mysha_256{
         );
 
 
-        let mut s2 = SHA256::new("abcdef".to_ascii_lowercase().as_bytes());
+        let s2 = SHA256::new("abcdef".to_ascii_lowercase().as_bytes());
         let mut pad2 = vec![0x61626364u32, 0x65668000u32];
         pad2.append(
             &mut vec![0; 13]

@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_main, criterion_group, Criterion};
+use criterion::{criterion_main, criterion_group, Criterion};
 
 #[path="../src/sha_256.rs"]
 mod sha_256;
@@ -9,7 +9,7 @@ fn case_to_string(path:&str) -> String{
     use std::io::Read;
     let mut s = String::new();
     let mut f = File::open(path).unwrap();
-    f.read_to_string(&mut s).unwrap();
+    f.read_to_string(&mut s).unwrap();  
     s
 }
 
