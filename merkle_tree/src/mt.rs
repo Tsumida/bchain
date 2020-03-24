@@ -16,7 +16,7 @@ impl MerkleTree{
             let mut nodes = Vec::with_capacity((n+1) >> 1);
             for ck in self.tree.last().unwrap().chunks(2){
                 let h = SHA256::new(ck.join("").as_bytes()).cal_sha_256();
-                //println!("ck = {:?}, h = {}", ck, &h);
+                println!("ck = {:?}, h = {}", ck, &h);
                 nodes.push(h);
             }
             self.tree.push(nodes);
@@ -85,10 +85,15 @@ impl MerkleTree{
     /// Create MerkleTree from non-empty hash sequence using sha-256..
     /// # Example 
     /// ```
-    /// let case = vec!["abc", "abcd", "abcde"].into_iter()
+    /// use mysha_256::sha_256::SHA256;
+    /// use merkle_tree::mt::MerkleTree;
+    /// 
+    /// let case = vec!["abc", "abcd", "abcde"]
+    ///     .into_iter()
     ///     .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
     ///     .collect();
-    /// let mt = MerkleTree::create(hss);
+    /// let mt = MerkleTree::create(case);
+    /// 
     /// ```
     pub fn create(txs: Vec<String>) -> MerkleTree{
         assert!(txs.len() >= 1);
@@ -173,12 +178,12 @@ mod test_merkle_tree{
         let mt = MerkleTree::create(hss);
 
         assert_eq!(
-            "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+            SHA256::new("abcd".as_bytes()).cal_sha_256(),
             mt.get_slibling_hash(0, 0),
         );
 
         assert_eq!(
-            "19cc02f26df43cc571bc9ed7b0c4d29224a3ec229529221725ef76d021c8326f",
+            SHA256::new("abc".as_bytes()).cal_sha_256(),
             mt.get_slibling_hash(0, 1),
         );
 
@@ -235,7 +240,7 @@ mod test_merkle_tree{
             mt2.get_height()
         );
         assert_eq!(
-            "7c7902a90b4c6cb946f50ce19d04784aa0d1de001ff138b0644db90298cd292d",
+            "e239682fd4c8efb7a008f355d8c9858a2b458fee1e4ba1bc86dd032fe745d204",
             mt2.get_root_hash().unwrap()
         );
     }
