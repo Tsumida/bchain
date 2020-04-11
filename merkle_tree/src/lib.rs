@@ -1,16 +1,71 @@
-
-//! Merkle tree.
-//! References: 
-//!     实现细节: https://www.jianshu.com/p/bfe990be3a21
+//! Implementations of MerkleTree(MT) and SortedMerkleTree(SMT).
+//! Use at least 2 tx-node(hashes of transactions) to build a MT or SMT.
+//! 
+//! MT and SMT use `mysha_256::SHA256` for internal hashing to compute the hash of transactions, 
+//! but it's ok to use other hash function to compute hashes as input of `create()`.
+//! 
+//! Both MT and SMT offer `gen_block_checker()` method to generate a `BlockChecker` for SPV.
+//! 
+//! # MerkleTree
+//! `MerkleTree` allows appending tx-nodes and simultaneously 
+//! update the merkle root hash in O(logN), where N is the number of nodes.
+//! 
+//! The order of tx-nodes is determinated by user.
+//! ```
+//! use mysha_256::sha256::SHA256;
+//! use merkle_tree::MerkleTree;
+//! 
+//! let txs = vec!["abc", "abcd", "abcde"]
+//!     .into_iter()
+//!     .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
+//!     .collect();
+//! let mut mt = MerkleTree::create(txs);
+//! mt.append(SHA256::new("abcdef".as_bytes()).cal_sha_256());
+//! ```
+//! 
+//! # SortedMerkleTree
+//! Differs from `MerkleTree`, `SortedMerkleTree` disallow modifiaction 
+//! so it doesn't offer `append()`.
+//! 
+//! `SortedMerkleTree` sorts tx-nodes first and then compute the merkle root.
+//! The order of tx-nodes is determinated by `String`.
+//! ```
+//! use mysha_256::sha256::SHA256;
+//! use merkle_tree::SortedMerkleTree;
+//! 
+//! let txs = vec!["abc", "abcd", "abcde"]
+//!     .into_iter()
+//!     .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
+//!     .collect();
+//! let smt = SortedMerkleTree::create(txs);
+//! smt.append(SHA256::new("abcdef".as_bytes()).cal_sha_256());
+//! ```
+//! 
+//! [Impl reference](https://www.jianshu.com/p/bfe990be3a21)
+//! 
+//! 
 use mysha_256::sha_256::SHA256;
-pub mod bc;
-use bc::BlockChecker;
+static NO_SLIBLING: &'static str = "";
 
+
+/// `MerkleTree` allow appending new transactions and simultaneously 
+/// update the merkle root hash in O(logN), where N is the number of nodes.
+/// The order of tx-nodes is determinated by user.
+/// # Example
+/// ```
+/// use mysha_256::sha_256::SHA256;
+/// use merkle_tree::MerkleTree;
+/// 
+/// let txs = vec!["abc", "abcd", "abcde"]
+///     .into_iter()
+///     .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
+///     .collect();
+/// let mut mt = MerkleTree::create(txs);
+/// mt.append(SHA256::new("abcdef".as_bytes()).cal_sha_256());
+/// ```
 pub struct MerkleTree{
     tree: Vec<Vec<String>>,
 }
-
-static NO_SLIBLING: &'static str = "";
 
 impl MerkleTree{
     fn build(&mut self){
@@ -86,7 +141,7 @@ impl MerkleTree{
     }
 
     /// Get blocks.
-    fn get_blocks(&self, path: &Vec<(usize, usize)>) -> Vec<String>{
+    fn get_blocks(&self, path: &Vec<(usize, usize)>) -> (Vec<String>, usize){
         // left node to hashes, right node to rhashes, 
         let top_level = self.tree.len();
         assert!(top_level > 1);
@@ -116,10 +171,11 @@ impl MerkleTree{
                 },
             }
         }
+        let rhash_index = hashes.len();
         while let Some(h) = rhashes.pop(){
             hashes.push(h);
         }
-        hashes
+        (hashes, rhash_index)
     }
 
     fn get_flags(&self, path: &Vec<(usize, usize)>) -> Vec<u8>{
@@ -175,7 +231,6 @@ impl MerkleTree{
     ///     .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
     ///     .collect();
     /// let mt = MerkleTree::create(case);
-    /// 
     /// ```
     pub fn create(txs: Vec<String>) -> MerkleTree{
         assert!(txs.len() >= 2);
@@ -218,7 +273,7 @@ impl MerkleTree{
         for p in path.iter(){
             println!("(level={}, index={})", p.0, p.1);
         }
-        let blocks = self.get_blocks(&path);
+        let (blocks, rhash_index) = self.get_blocks(&path);
         let flags: Vec<u8> = self.get_flags(&path);
 
         for (i, e) in blocks.iter().enumerate(){
@@ -228,6 +283,7 @@ impl MerkleTree{
         
         Some(
             BlockChecker{
+                rtx_index: rhash_index,
                 blocks: blocks,
                 flags: flags,
             }
@@ -395,50 +451,29 @@ mod test_merkle_tree{
                 .collect()
             ).get_root_hash()
         )
-
-    }
-
-    #[test]
-    fn test_gen_block_checker() {
-        // the first level hash.
-        let case = vec![
-            "abc",
-            "abcd",
-            "abcde",
-            "abcdef",
-            "abcdefg",
-            "abcdefgh",
-            "abcdefghi",
-        ].into_iter()
-        .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
-        .collect();
-        let mt = MerkleTree::create(case);
-        let _ = mt.gen_block_checker(SHA256::new("abcde".as_bytes()).cal_sha_256());
-
-    }
-    
-    #[test]
-    fn test_usage() {
-        let case = vec![
-            "abc",
-            "abcd",
-            "abcde",
-            "abcdef",
-            "abcdefg",
-            "abcdefgh",
-            "abcdefghi",
-        ].into_iter()
-        .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
-        .collect();
-        let mt = MerkleTree::create(case);
-
-        mt.print_tree();
     }
 }
 
+/// Differs from `MerkleTree`, `SortedMerkleTree` disallow modifiaction 
+/// so it doesn't offer `.append()`.
+/// `SortedMerkleTree` sorts tx-nodes first and then compute the merkle root.
+/// The order of tx-nodes is determinated by `String`.
+/// 
+/// # Example
+/// ```
+/// use mysha_256::SHA256;
+/// use merkle_tree::SortedMerkleTree;
+/// let txs = vec!["abc", "abcd", "abcde"]
+///     .into_iter()
+///     .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
+///     .collect();
+/// let smt = SortedMerkleTree::create(txs);
+/// mt.append(SHA256::new("abcdef".as_bytes()).cal_sha_256());
+/// ```
 pub struct SortedMerkleTree{
     tree: Vec<Vec<String>>,
 }
+
 
 impl SortedMerkleTree{
     fn build(&mut self){
@@ -475,7 +510,7 @@ impl SortedMerkleTree{
     }
 
     /// Get blocks.
-    fn get_blocks(&self, path: &Vec<(usize, usize)>) -> Vec<String>{
+    fn get_blocks(&self, path: &Vec<(usize, usize)>) -> (Vec<String>, usize){
         // left node to hashes, right node to rhashes, 
         let top_level = self.tree.len();
         assert!(top_level > 1);
@@ -484,7 +519,7 @@ impl SortedMerkleTree{
 
         // left node to hashes, right node to rhashes, 
         for &pos in path.iter().rev(){
-            println!("proc {:?}", pos);
+            //println!("proc {:?}", pos);
             match (MerkleTree::is_tx_node(pos.0), pos){
                 (true, (l, i)) => { // tx node => edge.
                     // tx节点的兄弟都要push进去
@@ -505,10 +540,11 @@ impl SortedMerkleTree{
                 },
             }
         }
+        let rhash_index = hashes.len();
         while let Some(h) = rhashes.pop(){
             hashes.push(h);
         }
-        hashes
+        (hashes, rhash_index)
     }
 
     fn get_flags(&self, path: &Vec<(usize, usize)>) -> Vec<u8>{
@@ -605,30 +641,24 @@ impl SortedMerkleTree{
             index = index >> 1;
             level += 1;
         }
-        for p in path.iter(){
-            println!("(level={}, index={})", p.0, p.1);
-        }
-        let blocks = self.get_blocks(&path);
+        
+        let (blocks, rhash_index) = self.get_blocks(&path);
         let flags: Vec<u8> = self.get_flags(&path);
 
-        for (i, e) in blocks.iter().enumerate(){
-            println!("{}-{}", i, e);
-        }
-        println!("flags = {:?}", flags);
-        
         Some(
             BlockChecker{
+                rtx_index: rhash_index,
                 blocks: blocks,
                 flags: flags,
             }
         )
     }
 
-    pub fn print_tree(&self) {
+    pub fn print_tree_short(&self) {
         for (row_i, row) in self.tree.iter().enumerate(){
             println!("level - {}", row_i);
             for (i, hs) in row.iter().enumerate(){
-                println!("i={}, hash={}",i, hs);
+                println!("i={}, hash={:?}",i, hs.chars().take(8).collect::<String>());
             }
             println!();
         }
@@ -651,5 +681,116 @@ impl SortedMerkleTree{
     /// Get hash of  merkle root.
     pub fn get_root_hash(&self) -> Option<String>{
         Some(self.tree.last().unwrap()[0].clone())
+    }
+}
+
+#[cfg(test)]
+mod test_smt{
+    use super::*;
+
+    #[test]
+    fn test_smt_create() {
+        let case = vec![
+            "abc",
+            "abcd",
+            "abcde",
+            "abcdef",
+            "abcdefg",
+            "abcdefgh",
+            "abcdefghi",
+        ].iter()
+        .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
+        .collect::<Vec<String>>();
+
+        println!("Sorted Merkle Tree, input:");
+        for (i, c) in case.iter().enumerate(){
+            println!("{}-{}", i, c);
+        }
+        println!();
+
+        let mt = SortedMerkleTree::create(case);
+        mt.print_tree_short();
+    }
+}
+
+/// BlockChecker is generated by full node and using for SPV.
+pub struct BlockChecker{
+    // There are only two tx-node in blocks
+    // and rtx_index is the index of the right tx-node.
+    pub rtx_index: usize, 
+    pub flags: Vec<u8>,
+    pub blocks: Vec<String>,
+}
+
+impl BlockChecker{
+    /// Verify that whether h is in the branch of the merkle tree.
+    pub fn validate(&self, h: &String, root_hash: &String) -> bool{
+        if !self.blocks.contains(&h){
+            return false;
+        }
+
+        let leng = self.flags.len();
+        let mut st:Vec<String> = Vec::with_capacity(leng);
+        let mut j = 0;
+        for &flag in self.flags[1..].iter(){
+            if flag == 0 || j == self.rtx_index - 1 || j == self.rtx_index{
+                if let Some(hs) = self.blocks.get(j){
+                    st.push(hs.clone());
+                    j += 1;
+                }else{
+                    break
+                }
+            }
+            if j > self.rtx_index{
+                // two tx node has been pushed.
+                assert!(st.len() >= 2);
+                let r = st.pop().unwrap();
+                let l = st.pop().unwrap();
+                let new_hash = SHA256::new((l + &r).as_bytes()).cal_sha_256();
+                // println!("validate: {}", &new_hash);
+                st.push(new_hash);
+            }
+        }
+        assert_eq!(1, st.len());
+
+        root_hash == st.get(0).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod test_bc{
+    use super::*;
+    use SortedMerkleTree;
+
+    #[test]
+    fn test_validate() {
+        let case = vec![
+            "abc",
+            "abcd",
+            "abcde",
+            "abcdef",
+            "abcdefg",
+            "abcdefgh",
+            "abcdefghi",
+        ].iter()
+        .map(|b| SHA256::new(b.as_bytes()).cal_sha_256())
+        .collect::<Vec<String>>();
+        let mt = SortedMerkleTree::create(case);
+        let rh = mt.get_root_hash().unwrap();
+        // mt.print_tree_short();
+
+
+        let h = SHA256::new("abc".as_bytes()).cal_sha_256();
+        let bc = mt.gen_block_checker(h.clone()).unwrap();
+        assert_eq!(
+            true, bc.validate(&h, &rh)
+        );
+
+        let h = SHA256::new("abcd".as_bytes()).cal_sha_256();
+        let bc = mt.gen_block_checker(h.clone()).unwrap();
+        assert_eq!(
+            true, bc.validate(&h, &rh)
+        );
+
     }
 }

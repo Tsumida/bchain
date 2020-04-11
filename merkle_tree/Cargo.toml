@@ -1,8 +1,9 @@
 [package]
 name = "merkle_tree"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Tsumida <tsumida@163.com>"]
 edition = "2018"
+description = "Impl of merkle tree and sorted merkle tree, both offer SPV."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
