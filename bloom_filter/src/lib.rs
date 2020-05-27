@@ -31,17 +31,17 @@
 //! use bloom_filter::BloomFilterBuilder;
 //! 
 //! let mut bf = BloomFilterBuilder::new()
-//! .set_byte_size(50)
+//! .set_bit_size(50)
 //! .set_hash_steps(&[2, 3, 5, 7])
 //! .build().unwrap();
 //! 
-//! bf.mem_view();
+//! bf.print_mem_view();
 //! 
 //! bf.insert("string".as_bytes());
-//! bf.mem_view();
+//! bf.print_mem_view();
 //! 
 //! bf.insert("hello, world!".as_bytes());
-//! bf.mem_view();
+//! bf.print_mem_view();
 //! 
 //! assert!(bf.contains("string".as_bytes()));
 //! assert!(bf.contains("hello, world!".as_bytes()));
@@ -70,7 +70,7 @@ impl BloomFilterBuilder{
     }
 
     /// 非精确
-    pub fn set_byte_size(&mut self, byte_sz: usize) -> &mut Self{
+    pub fn set_bit_size(&mut self, byte_sz: usize) -> &mut Self{
         self.bit_size = byte_sz;
         self
     }
@@ -118,7 +118,7 @@ impl BloomFilter{
             self.bv.set(p);
         }
         let p = tmp.iter().map(|n| (n >> 3, n & 0b111)).collect::<Vec<(usize, usize)>>();
-        eprintln!("set {:?}\n-> {:?}", tmp, p);
+        //eprintln!("set {:?}\n-> {:?}", tmp, p);
         self.num += 1;
         self
     }
@@ -133,13 +133,13 @@ impl BloomFilter{
             res &= self.bv.contains(p);
         }
         let p = tmp.iter().map(|n| (n >> 3, n & 0b111)).collect::<Vec<(usize, usize)>>();
-        eprintln!("check {:?}\n-> {:?}", tmp, p);
+        //eprintln!("check {:?}\n-> {:?}", tmp, p);
         res
     }
     // pub fn false_positive_rate(&self) -> f64{}
     // pub fn size() -> usize{}
 
-    pub fn mem_view(&self){
+    pub fn print_mem_view(&self){
         eprintln!("============= Bloom Filter =============== ");
         for (i, b) in self.bv.bit_vec.iter().enumerate(){
             eprintln!("index={:4} {:08b}", i, b);
@@ -150,27 +150,71 @@ impl BloomFilter{
 
 
 #[cfg(test)]
-mod tests {
+mod bf_test {
     use super::*;
+    use std::time::SystemTime;
 
     #[test]
     fn bf_usage() {
         let mut bf = BloomFilterBuilder::new()
-            .set_byte_size(50)
+            .set_bit_size(50)
             .set_hash_steps(&[2, 3, 5, 7])
             .build().unwrap();
     
-        bf.mem_view();
+        //bf.print_mem_view();
 
         bf.insert("string".as_bytes());
-        bf.mem_view();
+        //bf.print_mem_view();
 
         bf.insert("hello, world!".as_bytes());
-        bf.mem_view();
+        //bf.print_mem_view();
 
         assert!(bf.contains("string".as_bytes()));
         assert!(bf.contains("hello, world!".as_bytes()));
 
         assert!(!bf.contains("helloworld".as_bytes()));
     }
+
+    #[test]
+    fn bf_bench_insertion() {
+        let key1 = "abcdefghijklmnopqrstuvwxyz".to_string(); // 26 Byte
+
+        let times = 1_000_000;
+        let mut bf = BloomFilterBuilder::new()
+            .set_bit_size(128)
+            .set_hash_steps(&[2, 3, 5, 7])
+            .build()
+            .unwrap();
+        let st = SystemTime::now();
+        for _ in 0..times{
+            bf.insert(key1.as_bytes());
+        }
+
+        let dur = SystemTime::now().duration_since(st).unwrap().as_millis();
+
+        eprintln!("bench_insertion: {} insertions takes {} ms", times, dur);
+
+    }
+
+    #[test]
+    fn bf_bench_contains() {
+        let key1 = "abcdefghijklmnopqrstuvwxyz".to_string(); // 26 Byte
+
+        let times = 1_000_000;
+        let bf = BloomFilterBuilder::new()
+            .set_bit_size(128)
+            .set_hash_steps(&[2, 3, 5, 7])
+            .build()
+            .unwrap();
+        let st = SystemTime::now();
+        for _ in 0..times{
+            bf.contains(key1.as_bytes());
+        }
+        let dur = SystemTime::now().duration_since(st).unwrap().as_millis();
+
+        eprintln!("bench_contains: {} checking takes {} ms", times, dur);
+
+    }
+
+    
 }
