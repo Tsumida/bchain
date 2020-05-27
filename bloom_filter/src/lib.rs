@@ -111,13 +111,13 @@ impl BloomFilter{
     }
     pub fn insert(&mut self, key: &[u8]) -> &mut Self{
         let limit = self.bv.bit_size();
-        let mut tmp = Vec::new();
+        //let mut tmp = Vec::new();
         for &step in &self.steps{
             let p = simple_hasher(key, step) % limit;
-            tmp.push(p);
+            //tmp.push(p);
             self.bv.set(p);
         }
-        let p = tmp.iter().map(|n| (n >> 3, n & 0b111)).collect::<Vec<(usize, usize)>>();
+        //let p = tmp.iter().map(|n| (n >> 3, n & 0b111)).collect::<Vec<(usize, usize)>>();
         //eprintln!("set {:?}\n-> {:?}", tmp, p);
         self.num += 1;
         self
@@ -125,14 +125,14 @@ impl BloomFilter{
     
     pub fn contains(&self, key: &[u8]) -> bool{
         let limit = self.bv.bit_size();
-        let mut tmp = Vec::new();
+        //let mut tmp = Vec::new();
         let mut res = true;
         for &step in &self.steps{
             let p = simple_hasher(key, step) % limit;
-            tmp.push(p);
+            //tmp.push(p);
             res &= self.bv.contains(p);
         }
-        let p = tmp.iter().map(|n| (n >> 3, n & 0b111)).collect::<Vec<(usize, usize)>>();
+        //let p = tmp.iter().map(|n| (n >> 3, n & 0b111)).collect::<Vec<(usize, usize)>>();
         //eprintln!("check {:?}\n-> {:?}", tmp, p);
         res
     }
@@ -189,7 +189,6 @@ mod bf_test {
         for _ in 0..times{
             bf.insert(key1.as_bytes());
         }
-
         let dur = SystemTime::now().duration_since(st).unwrap().as_millis();
 
         eprintln!("bench_insertion: {} insertions takes {} ms", times, dur);

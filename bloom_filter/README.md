@@ -24,9 +24,9 @@ assert!(!bf.contains("helloworld".as_bytes()));
 
 ## Benchmark
 ```
-bench_contains: 1000000 checking takes 604 ms
+bench_contains: 1000000 checking takes 144 ms
 test bf_test::bf_bench_contains ... ok
 
-bench_insertion: 1000000 insertions takes 627 ms
+bench_insertion: 1000000 insertions takes 148 ms
 test bf_test::bf_bench_insertion ... ok
 ```
