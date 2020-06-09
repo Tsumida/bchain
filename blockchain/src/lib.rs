@@ -37,12 +37,13 @@
 use std::collections::HashMap;
 use std::iter::{FromIterator, Iterator};
 use std::io::{Read, Write};
+use std::marker::PhantomData;
 
-use merkletree::merkle::MerkleTree;
-use mkt::ExampleAlgorithm;
+use merkletree::merkle::{Element, MerkleTree};
+use mkt::HashAlgorithm;
 use digest::{Input, FixedOutput};
-use byteorder::{ WriteBytesExt, BigEndian};
 use sha2::Sha256;
+use byteorder::{ WriteBytesExt, BigEndian};
 
 mod utils;
 mod block;
@@ -56,22 +57,27 @@ use transaction::*;
 
 #[derive(Clone, Debug)]
 /// Simple block chain for exploration.
-pub struct BlockChain<H: HashVal>{
-    chain: Vec<Block<H>>, 
+pub struct BlockChain{
+    chain: Vec<Block>, 
 }
 
-impl<H: HashVal> BlockChain<H>{
-    pub fn new() -> BlockChain<H>{
+impl BlockChain{
+    pub fn new() -> BlockChain{
         let genesis_block = Block::genesis_block(0);
         BlockChain{
             chain: vec![genesis_block], // ts
         }
     }
+
+    pub fn push(&mut self, txs: impl IntoIterator<Item=SimpleTx>){
+
+    }
+
 }
 
 type SimpleHash = [u8; 32];
 type SimpleTx = Transaction<String, SimpleValue>;
-type SimpleChain = BlockChain<[u8; 32]>;
+type SimpleChain = BlockChain;
 
 #[derive(Clone, Debug)]
 pub struct SimpleValue{
@@ -113,8 +119,8 @@ impl SimpleTx{
     }
 }
 
+pub trait HashVal: Element{}
 impl HashVal for SimpleHash{}
-
 
 impl TxAddr for String{
     fn coin_base_addr() -> Self{
@@ -162,7 +168,7 @@ fn bc_usage() {
         h
     }).collect();
 
-    let mkt: MerkleTree<SimpleHash, ExampleAlgorithm, merkletree::store::VecStore<_>>
+    let mkt: MerkleTree<SimpleHash, HashAlgorithm, merkletree::store::VecStore<SimpleHash>>
         = MerkleTree::try_from_iter(tx_hash.into_iter().map(Ok)).unwrap();
 
     // mkt root -> Blockchain
