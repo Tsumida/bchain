@@ -45,15 +45,13 @@ use digest::{Input, FixedOutput};
 use sha2::Sha256;
 use byteorder::{ WriteBytesExt, BigEndian};
 
-mod utils;
 mod block;
 mod transaction;
 mod mkt;
 //use mkt::*;
-use utils::*;
 use block::*;
+use mkt::HashVal;
 use transaction::*;
-
 
 #[derive(Clone, Debug)]
 /// Simple block chain for exploration.
@@ -75,7 +73,7 @@ impl BlockChain{
 
 }
 
-type SimpleHash = [u8; 32];
+type SimpleHash = mkt::HashVal;
 type SimpleTx = Transaction<String, SimpleValue>;
 type SimpleChain = BlockChain;
 
@@ -108,19 +106,17 @@ impl SimpleTx{
     /// Tx -> SHA256
     pub fn to_simple_hash(&self) -> SimpleHash{
         let mut sha = sha2::Sha256::default();
-        let mut h: SimpleHash = [0; 32];
+        let mut h: SimpleHash = HashVal([0; 32]);
 
         sha.input(self.to_bytes());
 
         for (i, e) in sha.fixed_result().iter().enumerate(){
-            *h.get_mut(i).unwrap() = *e;
+            *h.0.get_mut(i).unwrap() = *e;
         }
         h
     }
 }
 
-pub trait HashVal: Element{}
-impl HashVal for SimpleHash{}
 
 impl TxAddr for String{
     fn coin_base_addr() -> Self{
@@ -133,7 +129,6 @@ fn bc_usage() {
     let mut chain: SimpleChain = BlockChain::new();
     let txs:Vec<SimpleTx> = Vec::new();
 
-  
     let addr_a = "Alice".to_string();
     let addr_b = "Bob".to_string();
     let addr_c = "Carona".to_string();
@@ -165,9 +160,10 @@ fn bc_usage() {
         for (i, e) in s.fixed_result().into_iter().enumerate(){
             h[i] = e;
         }
-        h
+        HashVal(h)
     }).collect();
 
+    // E: Element, A: Algorithm<E>, S: Store<E>,
     let mkt: MerkleTree<SimpleHash, HashAlgorithm, merkletree::store::VecStore<SimpleHash>>
         = MerkleTree::try_from_iter(tx_hash.into_iter().map(Ok)).unwrap();
 
@@ -175,4 +171,16 @@ fn bc_usage() {
     let root = mkt.root();
     eprintln!("merkle root: {:?}", root);
 
+    //
+    //let block = Block::pack(ts: u64, txs: impl Iterator<Item=Transaction<A, V>>)
+
 }   
+
+#[test]
+fn test_adding(){
+    let p: u8 = 0b01100110;
+    assert_eq!( 0b11001100u8, p.wrapping_shl(1));
+    assert_eq!( 0b10011000u8, p.wrapping_shl(2));
+
+    assert_eq!(0b10011001u8, p.rotate_left(2));
+}

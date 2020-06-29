@@ -2,11 +2,12 @@
 //! 
 //! 
 
-use merkletree::merkle::{MerkleTree, Element};
-use digest::{Input, FixedOutput};
-use sha2::Sha256;
+use merkletree::merkle::{MerkleTree};
+//use digest::{Input, FixedOutput};
+//use sha2::Sha256;
 
-use crate::mkt::HashAlgorithm;
+use crate::transaction::{Transaction, TxAddr, CoinValue};
+use crate::mkt::{HashVal, HashAlgorithm};
 
 #[derive(Debug, Clone)]
 pub struct BlockHeader{
@@ -32,28 +33,57 @@ impl BlockHeader{
 
 #[derive(Clone, Debug)]
 pub struct BlockData{
-    merkle_tree: MerkleTree<[u8; 32], HashAlgorithm, merkletree::store::VecStore<[u8; 32]>>, //
+    mkt: MerkleTree<HashVal, HashAlgorithm, merkletree::store::VecStore<HashVal>>, //
 }
-
+    
 #[derive(Clone, Debug)]
 pub struct Block{
     header: BlockHeader,
-    // data: BlockData,
+    data: BlockData,
     // data
 }
 
 impl Block{
+    /// Create a genesis_block.
     pub fn genesis_block(ts: u64) -> Block{
+        let mkt = MerkleTree::new(vec![HashVal([0; 32]); 2]).unwrap();
         Block{
             header: BlockHeader{
                 version: 0,
                 prev_block: [0; 32],
-                merkle_root: [0; 32],
+                merkle_root: mkt.root().0,
                 timestamp: ts,
                 bits: 0,
                 nonce: 0,
+            },
+            data: BlockData{
+                mkt: mkt,
             }
         }
+    }
+
+    /// Pack transactions into a block
+    pub fn pack<A, V>(ts: u64, txs: impl Iterator<Item=Transaction<A, V>>) -> Block
+        where A: TxAddr + AsRef<[u8]>, V: CoinValue 
+    {
+        unimplemented!()
+        /*
+        let hashes = vec![];
+        let mkt = MerkleTree::new(hashes).unwrap();
+
+        Block{
+            header: BlockHeader{
+                version: 0,
+                prev_block: [0; 32],
+                merkle_root: mkt.root().0,
+                timestamp: ts,
+                bits: 0,
+                nonce: 0,
+            },
+            data: BlockData{
+                mkt: mkt,
+            }
+        }*/
     }
 }
 
