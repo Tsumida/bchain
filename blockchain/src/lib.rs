@@ -34,16 +34,18 @@
 //! # V1
 //! 没有签名的区块链
 
-use std::collections::HashMap;
+use std::collections::LinkedList;
 use std::iter::{FromIterator, Iterator};
 use std::io::{Read, Write};
-use std::marker::PhantomData;
+// use std::marker::PhantomData;
+use std::time::Instant; 
 
 use merkletree::merkle::{Element, MerkleTree};
 use mkt::HashAlgorithm;
 use digest::{Input, FixedOutput};
 use sha2::Sha256;
 use byteorder::{ WriteBytesExt, BigEndian};
+
 
 mod block;
 mod transaction;
@@ -56,21 +58,23 @@ use transaction::*;
 #[derive(Clone, Debug)]
 /// Simple block chain for exploration.
 pub struct BlockChain{
-    chain: Vec<Block>, 
+    chain: LinkedList<Block>, 
 }
 
 impl BlockChain{
     pub fn new() -> BlockChain{
-        let genesis_block = Block::genesis_block(0);
+        let mut c = LinkedList::new();
+        c.push_back(Block::genesis_block(0));
         BlockChain{
-            chain: vec![genesis_block], // ts
+            chain: c, // ts
         }
     }
 
     pub fn push(&mut self, txs: impl IntoIterator<Item=SimpleTx>){
 
+        // let b = Block::pack(ts: u64, txs: impl Iterator<Item=Transaction<A, V>>)
+        // self.chain.push_back(b);
     }
-
 }
 
 type SimpleHash = mkt::HashVal;
@@ -172,7 +176,7 @@ fn bc_usage() {
     eprintln!("merkle root: {:?}", root);
 
     //
-    //let block = Block::pack(ts: u64, txs: impl Iterator<Item=Transaction<A, V>>)
+    //let block = Block::pack(ts: u64, txs: impl Iterator<Item=Transaction<A, V>>);
 
 }   
 

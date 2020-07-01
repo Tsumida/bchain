@@ -3,6 +3,8 @@
 //! 
 
 use merkletree::merkle::{MerkleTree};
+use merkletree::store::VecStore;
+
 //use digest::{Input, FixedOutput};
 //use sha2::Sha256;
 
@@ -63,13 +65,13 @@ impl Block{
     }
 
     /// Pack transactions into a block
-    pub fn pack<A, V>(ts: u64, txs: impl Iterator<Item=Transaction<A, V>>) -> Block
+    pub fn pack<A, V>(ts: u64, txs: impl IntoIterator<Item=Transaction<A, V>>) -> Block
         where A: TxAddr + AsRef<[u8]>, V: CoinValue 
     {
-        unimplemented!()
-        /*
-        let hashes = vec![];
-        let mkt = MerkleTree::new(hashes).unwrap();
+        // do something.. make sure that it will pack 2^k tx. for k > 0
+        // TODO
+        // let hashes = txs.into_iter().map(|tx| tx. ).collect::<Vec<HashVal>>();
+        let mkt: MerkleTree<HashVal, HashAlgorithm, VecStore<_>> = MerkleTree::new(hashes).unwrap();
 
         Block{
             header: BlockHeader{
@@ -83,7 +85,7 @@ impl Block{
             data: BlockData{
                 mkt: mkt,
             }
-        }*/
+        }
     }
 }
 
