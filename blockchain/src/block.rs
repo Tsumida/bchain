@@ -8,8 +8,11 @@ use merkletree::store::VecStore;
 //use digest::{Input, FixedOutput};
 //use sha2::Sha256;
 
+use crate::sym_def::{
+    HashVal,
+    HashAlgorithm,
+};
 use crate::transaction::{Transaction, TxAddr, CoinValue};
-use crate::mkt::{HashVal, HashAlgorithm};
 
 #[derive(Debug, Clone)]
 pub struct BlockHeader{
@@ -64,13 +67,12 @@ impl Block{
         }
     }
 
-    /// Pack transactions into a block
+    /// Pack transactions into a block. Panic if txs has length n != 2^k for any k >= 1 .
     pub fn pack<A, V>(ts: u64, txs: impl IntoIterator<Item=Transaction<A, V>>) -> Block
         where A: TxAddr + AsRef<[u8]>, V: CoinValue 
     {
-        // do something.. make sure that it will pack 2^k tx. for k > 0
-        // TODO
-        // let hashes = txs.into_iter().map(|tx| tx. ).collect::<Vec<HashVal>>();
+        let hashes = txs.into_iter().map(|tx| tx.into()).collect::<Vec<HashVal>>();
+        assert!(hashes.len().is_power_of_two());
         let mkt: MerkleTree<HashVal, HashAlgorithm, VecStore<_>> = MerkleTree::new(hashes).unwrap();
 
         Block{
@@ -87,5 +89,11 @@ impl Block{
             }
         }
     }
+
+    /// Return merkleroot of the block.
+    pub fn mkt_root(&self) -> HashVal{
+        self.data.mkt.root()
+    }
+
 }
 

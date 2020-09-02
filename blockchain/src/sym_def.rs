@@ -1,14 +1,11 @@
 use std::hash::Hasher;
-use merkletree::hash::{Algorithm, Hashable};
-use merkletree::merkle::{
-    //MerkleTree,
-    Element,
+use merkletree::hash::{
+    Algorithm,
 };
+use merkletree::merkle::Element;
 //use merkletree::store::VecStore;
-use sha2::Sha256;
-
+use sha2::Sha256;   
 use digest::{Input, Reset, FixedOutput};
-
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct HashVal(pub [u8; 32]);
@@ -49,13 +46,21 @@ impl Element for HashVal{
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct HashAlgorithm(Sha256);
 
 impl HashAlgorithm {
     pub fn new() -> HashAlgorithm {
         HashAlgorithm(Sha256::default())
+    }
+
+    /// Return hash value from internal state.
+    pub fn take_hash(&mut self) -> HashVal{
+        let mut h = [0u8; 32];
+        for (i, e) in self.0.clone().fixed_result().iter().enumerate(){
+            h[i] = *e;
+        }
+        HashVal(h)
     }
 }
 
@@ -73,18 +78,14 @@ impl Hasher for HashAlgorithm {
 
     #[inline]
     fn finish(&self) -> u64 {
-        unimplemented!()
+        0  // ??????????????????????????
     }
 }
 
 impl Algorithm<HashVal> for HashAlgorithm {
     #[inline]
     fn hash(&mut self) -> HashVal {
-        let mut h = [0u8; 32];
-        for (i, e) in self.0.clone().fixed_result().iter().enumerate(){
-            h[i] = *e;
-        }
-        HashVal(h)
+        self.take_hash()
     }
     #[inline]
     fn reset(&mut self) {

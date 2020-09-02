@@ -50,8 +50,9 @@ name = "blockchain"
 version = "0.1.0"
 dependencies = [
  "base64",
- "byteorder 0.5.3",
+ "byteorder 1.3.4",
  "digest",
+ "itertools",
  "merkletree",
  "sha2",
 ]
@@ -181,6 +182,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91780f809e750b0a89f5544be56617ff6b1227ee485bcb06ebe10cdf89bd3b71"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "itertools"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
+dependencies = [
+ "either",
 ]
 
 [[package]]

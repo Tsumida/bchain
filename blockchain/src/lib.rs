@@ -41,18 +41,20 @@ use std::io::{Read, Write};
 use std::time::Instant; 
 
 use merkletree::merkle::{Element, MerkleTree};
-use mkt::HashAlgorithm;
 use digest::{Input, FixedOutput};
 use sha2::Sha256;
-use byteorder::{ WriteBytesExt, BigEndian};
+use byteorder::{WriteBytesExt, BigEndian};
 
 
 mod block;
 mod transaction;
-mod mkt;
-//use mkt::*;
+mod sym_def;
+
+use sym_def::{
+    HashVal,
+    HashAlgorithm,
+};
 use block::*;
-use mkt::HashVal;
 use transaction::*;
 
 #[derive(Clone, Debug)]
@@ -77,14 +79,11 @@ impl BlockChain{
     }
 }
 
-type SimpleHash = mkt::HashVal;
+type SimpleHash = HashVal;
 type SimpleTx = Transaction<String, SimpleValue>;
 type SimpleChain = BlockChain;
 
-#[derive(Clone, Debug)]
-pub struct SimpleValue{
-    pub val: u64, // v64
-}
+type SimpleValue = f64;
 
 impl CoinValue for SimpleValue{
     fn default_value() -> Self{
@@ -92,17 +91,7 @@ impl CoinValue for SimpleValue{
     }
 
     fn to_bytes(&self) -> Vec<u8>{
-        let mut v = Vec::with_capacity(std::mem::size_of_val(&self.val));
-        v.write_u64::<BigEndian>(self.val).unwrap();
-        v
-    }
-}
-
-impl From<u64> for SimpleValue{
-    fn from(v: u64) -> SimpleValue{
-        SimpleValue{
-            val: v
-        }
+        self.to_be_bytes().to_vec()
     }
 }
 
@@ -121,7 +110,6 @@ impl SimpleTx{
     }
 }
 
-
 impl TxAddr for String{
     fn coin_base_addr() -> Self{
         "".to_string()
@@ -137,45 +125,57 @@ fn bc_usage() {
     let addr_b = "Bob".to_string();
     let addr_c = "Carona".to_string();
 
-    let txs = vec![
+    // create 3 txs: 1 coinbase, 2 transactions.
+    let mut txs = vec![
+        // 100 coin -> A
+        Transaction::coinbase(100.0, addr_a.clone()),
+        // A ---> 100 ---> 95 --> A
+        //         | ----> 5  --> B
         Transaction{
+            tx_index: 1,
             input:InputTx(vec![
-                Trans{addr: addr_a.clone(), val: SimpleValue::from(10)},
+                Trans{addr: addr_a.clone(), val: SimpleValue::from(100.0)},
             ]),
             output:OutputTx(vec![
-                Trans{addr: addr_b.clone(), val: SimpleValue::from(5)}, 
-                Trans{addr: addr_a.clone(), val: SimpleValue::from(5)},
+                Trans{addr: addr_b.clone(), val: SimpleValue::from(95.0)}, 
+                Trans{addr: addr_a.clone(), val: SimpleValue::from(5.0)},
             ]),
         }, 
+        // B ---> 2 ----> C
         Transaction{
+            tx_index: 2,
             input:InputTx(vec![
-                Trans{addr: addr_b.clone(), val: SimpleValue::from(2)},
+                Trans{addr: addr_b.clone(), val: SimpleValue::from(2.0)},
             ]),
             output:OutputTx(vec![
-                Trans{addr: addr_c.clone(), val: SimpleValue::from(2)}, 
+                Trans{addr: addr_c.clone(), val: SimpleValue::from(2.0)}, 
             ]),
         }
+        // final --- : A: 95.0, B: 3.0, C: 2.0
     ];
-    // tx -> hash
-    let tx_hash:Vec<SimpleHash> = txs.iter().map(|tx|  {
-        let mut s = Sha256::default();
-        let mut h = [0; 32];
-        s.input(tx.to_bytes()); 
-        for (i, e) in s.fixed_result().into_iter().enumerate(){
-            h[i] = e;
-        }
-        HashVal(h)
-    }).collect();
 
-    // E: Element, A: Algorithm<E>, S: Store<E>,
-    let mkt: MerkleTree<SimpleHash, HashAlgorithm, merkletree::store::VecStore<SimpleHash>>
-        = MerkleTree::try_from_iter(tx_hash.into_iter().map(Ok)).unwrap();
+    // merkletree takes exact 2^k block as input, where k >= 1
+    let n = txs.len();
+    assert!(n > 0); 
+    let pow2 = n.next_power_of_two();
+    if pow2 != n{
+        let delta = pow2 - n;
+        txs.extend(
+            std::iter::repeat(
+                txs.last().unwrap().clone())
+            .take(delta)
+            .collect::<Vec<Transaction<_, _>>>()
+        );
+    }
+
+    // tx -> hash
+    let block = Block::pack(10000, txs);
 
     // mkt root -> Blockchain
-    let root = mkt.root();
+    let root = block.mkt_root();
     eprintln!("merkle root: {:?}", root);
 
-    //
+    // TODO: take timestamp.
     //let block = Block::pack(ts: u64, txs: impl Iterator<Item=Transaction<A, V>>);
 
 }   
